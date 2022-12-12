@@ -10,3 +10,9 @@ def test_update_agent_pos():
     world = World()
     world.update_agent_pos((2,3))
     assert world.board[2][3] == "agent"
+
+def test_inform_game_over():
+    world = World()
+    world.update_agent_pos((1,0))
+    assert world.is_game_over()
+    

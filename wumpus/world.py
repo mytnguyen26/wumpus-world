@@ -34,8 +34,6 @@ class World:
         self.board[self.agent_pos[0]][self.agent_pos[1]] = "agent"
     
     def update_agent_pos(self, agent_pos: Tuple[int, int]):
-        self.board[agent_pos[0]][agent_pos[1]] = "agent"
-        self.board[self.agent_pos[0]][self.agent_pos[1]] = 0
         self.agent_pos = agent_pos
 
 
@@ -56,13 +54,16 @@ class World:
         ]
         return adj_cells
 
+    def is_game_over(self) -> bool:
+        return self.board[self.agent_pos[0]][self.agent_pos[1]] in ["wumpus", "pit"]
+
     def sensor(self, agent: Agent):
         """
         This function gives agent limited knowledge of the current world
         given current position 
         """
+        self.agent_pos = agent.agent_pos
         adj_cells = self.find_adjacent_cells()
-        
 
         # update PERCEPT datastructure and give to agent
         percept = PERCEPT
