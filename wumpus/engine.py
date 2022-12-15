@@ -3,7 +3,7 @@ TODO
 """
 import random
 from typing import List, Tuple
-from utility import Utility
+from wumpus.utility import Utility
 
 ACTUATORS = ["move", "grab", "shoot"]
 
@@ -42,9 +42,10 @@ class Engine:
         row['bad'] = 0
         
         # update the knoeldge base
-        self.knowledge[move] = row
+        if move not in self.knowledge.keys():
+            self.knowledge[move] = row
 
-        # reason and update status
+        # reason and update knowledge
         self._entail(move)
 
     def ask(self, pos) -> Tuple[int, int]:
@@ -59,9 +60,12 @@ class Engine:
         for pos in adj_pos:
             try:
                 values = self.knowledge[pos]['ok']
-                potential_next_moves.append(pos)
+                # consider this as next move if it is ok
+                if values:
+                    potential_next_moves.append(pos)
             except Exception as e:
                 # key not found => no info yet in KB
+                # consider this as next move
                 potential_next_moves.append(pos)
 
         return random.choice(potential_next_moves)

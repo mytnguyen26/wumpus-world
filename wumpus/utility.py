@@ -8,11 +8,12 @@ class Utility:
             if number < 0 or number > 3:
                 return None
             return number
-
+        
+        
         adj_cells = [
             (calculate_new_pos(agent_pos[0] + 1), agent_pos[1]),
             (calculate_new_pos(agent_pos[0] - 1), agent_pos[1]),
             (agent_pos[0], calculate_new_pos(agent_pos[1] + 1)),
-            (agent_pos[0], calculate_new_pos(agent_pos[1] + 1))
+            (agent_pos[0], calculate_new_pos(agent_pos[1] - 1))
         ]
-        return adj_cells
+        return [cell for cell in adj_cells if cell[0]!=None and cell[1]!=None]

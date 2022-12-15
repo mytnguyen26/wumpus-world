@@ -2,6 +2,7 @@ import random
 from typing import Tuple
 from wumpus import PERCEPT
 from wumpus.agent import Agent
+from wumpus.utility import Utility
 
 class World:
     def __init__(self):
@@ -36,24 +37,6 @@ class World:
     def update_agent_pos(self, agent_pos: Tuple[int, int]):
         self.agent_pos = agent_pos
 
-
-    def find_adjacent_cells(self):
-        """
-        given current pos, find 4 adjacent cells
-        """
-        def calculate_new_pos(number):
-            if number < 0 or number > 3:
-                return None
-            return number
-
-        adj_cells = [
-            (calculate_new_pos(self.agent_pos[0] + 1), self.agent_pos[1]),
-            (calculate_new_pos(self.agent_pos[0] - 1), self.agent_pos[1]),
-            (self.agent_pos[0], calculate_new_pos(self.agent_pos[1] + 1)),
-            (self.agent_pos[0], calculate_new_pos(self.agent_pos[1] + 1))
-        ]
-        return adj_cells
-
     def is_game_over(self) -> bool:
         return self.board[self.agent_pos[0]][self.agent_pos[1]] in ["wumpus", "pit"]
 
@@ -63,7 +46,7 @@ class World:
         given current position 
         """
         self.agent_pos = agent.agent_pos
-        adj_cells = self.find_adjacent_cells()
+        adj_cells = Utility.find_adjacent_cells()
 
         # update PERCEPT datastructure and give to agent
         percept = PERCEPT
