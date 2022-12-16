@@ -49,7 +49,7 @@ class World:
     
     def _randomly_place_stuff_big_board(self):
         """
-        TODO
+        This is the board as specified in Lab2 - Kill the Wumpus
         """
         placement = {
             "wumpus": [(2, 1)],
@@ -77,6 +77,10 @@ class World:
         return False
 
     def _remove_stench(self, wumpus_pos):
+        """
+        Once wumpus is killed, remove all Stench around the position
+        of the original wumpus to avoid sending wrong signal later
+        """
         adj_pos = Utility.find_adjacent_cells(wumpus_pos, self.board_size)
         for pos in adj_pos:
             if "stench" in self.board[pos[0]][pos[1]]:

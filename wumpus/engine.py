@@ -210,26 +210,11 @@ class Engine:
         if not, the are no pit nor wumpus at that position.
         """
         adj_cell = Utility.find_adjacent_cells(pos, self.board_size)
-        # not_matching_cnt = 0
-        # if self.knowledge[pos]["pit"] \
-        #     and self.knowledge[pos]["wumpus"] \
-        #     and not self.knowledge[pos]["bad"]:
-
-        #     for adj in adj_cell:
-        #         if adj in self.knowledge.keys() \
-        #             and self.knowledge[adj]["stench"] != self.knowledge[adj]["breeze"]:
-        #             not_matching_cnt += 1
-
-        #     # if more than half of cell arounding that candidate cell
-        #     # does not match, then cell is ok
-        #     if not_matching_cnt/len(adj_cell) > 0.5:        
-        #         self.knowledge[pos]["ok"] = 1
-        #         self.knowledge[pos]["wumpus"] = 0
-        #         self.knowledge[pos]["pit"] = 0
+        
 
         # this cell we are checking is suspected to be pit
         # for this to happen, all known and visisted ce lls around it
-        # must have either stench or breeze and must not be stench 
+        # must have breeze 
         if self.knowledge[pos]["pit"]:  
             for adj in adj_cell:
                 if adj in self.knowledge.keys() \
@@ -238,6 +223,10 @@ class Engine:
                     self.knowledge[pos]["ok"] = 0
                     self.knowledge[pos]["pit"] = 0
         
+        # this cell we are checking is suspected to be pit
+        # for this to happen, all known and visisted cells around it
+        # must have stench 
+
         if self.knowledge[pos]["wumpus"]:
             for adj in adj_cell:
                 if adj in self.knowledge.keys() \
