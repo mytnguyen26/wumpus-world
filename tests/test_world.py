@@ -2,17 +2,9 @@ import pytest
 from wumpus.world import World
 
 def test_placement():
-    world = World()
+    world = World(mode=0)
     assert world.board[3][0] == "agent"
     assert world.board[1][0] == "wumpus"
-    
-def test_update_agent_pos():
-    world = World()
-    world.update_agent_pos((2,3))
-    assert world.board[2][3] == "agent"
 
-def test_inform_game_over():
-    world = World()
-    world.update_agent_pos((1,0))
-    assert world.is_game_over()
+
     

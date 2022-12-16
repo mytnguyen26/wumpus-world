@@ -2,20 +2,17 @@
 TODO
 """
 import random
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 from wumpus.utility import Utility
 
 ACTUATORS = ["move", "grab", "shoot"]
 
 
 class Engine:
-    def __init__(self):
+    def __init__(self, board_size):
 
         # current board
-        self.state = [[0, 0, 0, 0],
-                        [0, 0, 0, 0],
-                        [0, 0, 0, 0],
-                        [0, 0, 0, 0]]
+        self.board_size = board_size
 
         self.knowledge = {
             # (row, col) : {
@@ -48,12 +45,27 @@ class Engine:
         # reason and update knowledge
         self._entail(move)
 
-    def ask(self, pos) -> Tuple[int, int]:
+    def ask(self, pos) -> Dict[str, Tuple[int, int]]:
         """
-        ask engine the knowledge
+        ask engine the knowledge and return a move with structure
+        {
+            <type_of_action>: (row, col)
+        }
         """
+        actions = []
+
+        # if there is gold
+        if self.knowledge[pos]["glitter"]:
+            actions.append(
+                {"grab": pos}
+            )
+
+        # if there is wumpus in proximity
+        # kill
+
+        # for all other 
         # find all adj pos
-        adj_pos: List[Tuple[int,int]] = Utility.find_adjacent_cells(pos)
+        adj_pos: List[Tuple[int,int]] = Utility.find_adjacent_cells(pos, self.board_size)
 
         # from all adj pos, find OK or unknown pos from KB
         potential_next_moves = []
@@ -68,7 +80,66 @@ class Engine:
                 # consider this as next move
                 potential_next_moves.append(pos)
 
-        return random.choice(potential_next_moves)
+        actions.append({"move":random.choice(potential_next_moves)})
+        return actions
+
+    def _is_wumpus(self, pos, adj_pos):
+        """
+        from position, check if there is a wumpus in vertical, 
+        horizontal adj cells from the current pos
+        """
+        # Case forward proof:
+        # if current position is stench, wumpus must be locating in
+        # adjacent cells. If everything else but 1 is proven to be either
+        # ok (because we visited) or having something else (proven pit)
+        # then that remaining must be wumpus
+        # --> update bad = 1
+        if self.knowledge[pos]["stench"]:
+            remaining_posible_wumpus = [adj for adj in adj_pos \
+                                        if adj in self.knowledge.keys() \
+                                        and self.knowledge[adj]["wumpus"] == 1]
+            if len(remaining_posible_wumpus) == 1:
+                self.knowledge[remaining_posible_wumpus[0]]["bad"] = 1
+                print(f"wumpus location is at {remaining_posible_wumpus[0]}")
+
+
+        # case backward prove:
+        # if every adj cells of a potential pos candidate is stench
+        # => wumpus
+        
+        # 
+
+    def _is_pit(self, pos, adj_pos):
+        """
+        from position, check if there is a pit in vertical, 
+        horizontal adj cells from the current pos
+        """
+        # Case forward proof:
+        # if current position is breeze, pit must be locating in
+        # adjacent cells. If everything else but 1 is proven to be either
+        # ok (because we visited) or having something else (proven wumpus)
+        # then that remaining must be wumpus
+        # --> update bad = 1
+        if self.knowledge[pos]["breeze"]:
+            remaining_posible_pit = [adj for adj in adj_pos \
+                                        if adj in self.knowledge.keys() \
+                                        and self.knowledge[adj]["pit"] == 1]
+            if len(remaining_posible_pit) == 1:
+                self.knowledge[remaining_posible_pit[0]]["bad"] = 1
+                print(f"pit location is at {remaining_posible_pit[0]}")
+    
+    def _is_ok(self, pos):
+        """
+        PROVE: cell is ok by deduction
+        if a pos is tentatively labled with both a pit and a wumpus
+        then adjs position we know about must be labelled with both Stench and Breeze
+        if not, the are no pit nor wumpus at that position.
+        """
+        
+        if self.knowledge[pos]["pit"] and self.knowledge[pos]["wumpus"]:
+            self.knowledge[pos]["ok"] = 1
+            self.knowledge[pos]["wumpus"] = 0
+            self.knowledge[pos]["pit"] = 0
 
     def _entail(self, pos):
         """
@@ -77,35 +148,43 @@ class Engine:
         wumpus or gold
         """
         # find adjacent position
-        adj_pos = Utility.find_adjacent_cells(pos)
+        adj_pos = Utility.find_adjacent_cells(pos, self.board_size)
 
         # update tentative guess from existing known knowledge
+        # for each position in the list of adjacent positions
+        # return from utility, update their pits or wumpus guess (not confirm)
+        # base current knowledge
         for adj in adj_pos:
-            if not self.knowledge[adj]["ok"]:
+            if adj in self.knowledge.keys():
+                if not self.knowledge[adj]["ok"]:
+                    if self.knowledge[pos]["breeze"]:
+                        self.knowledge[adj]["pit"] = 1
+                    elif self.knowledge[pos]["stench"]:
+                        self.knowledge[adj]["wumpus"] = 1
+            else:
+                record = {
+                    "visited": 0,
+                    "stench": 0, "breeze": 0, "glitter": 0, "bump": 0, "scream": 0,
+                    "wumpus": 0, "pit": 0, "ok": 0, "bad": 0
+                }
                 if self.knowledge[pos]["breeze"]:
-                    self.knowledge[adj]["pit"] = 1
+                    record["pit"] = 1
                 elif self.knowledge[pos]["stench"]:
-                    self.knowledge[adj]["wumpus"] = 1
-        
-            # if a pos is tentatively labled with both a pit and a wumpus
-            # then adjs position we know about must be labelled with both Stench and Breeze
-            # if not, the are no pit nor wumpus at that position.
-            # proof:
-            # 
-            if self.knowledge[adj]["pit"] and self.knowledge[adj]["wumpus"]:
-                self.knowledge[adj]["ok"] = 1
-                self.knowledge[adj]["wumpus"] = 0
-                self.knowledge[adj]["pit"] = 0
+                    record["wumpus"] = 1
                 
-                
-        # after updating, check again to see if we can find wumpus
-        if self.knowledge[pos]["stench"]:
-            remaining_posible_wumpus = [adj for adj in adj_pos if self.knowledge[adj]["wumpus"] == 1]
-            if len(remaining_posible_wumpus == 1):
-                self.knowledge[remaining_posible_wumpus[0]]["bad"] = 1
-                print(f"wumpus location is at {remaining_posible_wumpus[0]}")
+                self.knowledge[adj] = record
             
-
+            self._is_ok(adj)
+                
+                
+        # after updating, check again to see if we can prove wumpus
+        # is in certain cell --> update bad = 1
+        self._is_wumpus(pos, adj_pos)
+        
+            
+        # after updating, check again to see if we can prove pit
+        # is in certain cell --> update bad = 1
+        self._is_pit(pos, adj_pos)
 
 
             

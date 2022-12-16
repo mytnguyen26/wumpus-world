@@ -4,10 +4,10 @@ from wumpus.engine import Engine
 from wumpus.world import World
 
 def test_tell_knowledgebase():
-    world = World()
-    engine =  Engine()
+    world = World(mode=0)
+    engine =  Engine(world.board_size)
     agent = Agent(engine)
-
+    
     agent.agent_pos = (0, 2)
     world.sensor(agent)
     engine.tell(move = agent.agent_pos, percept = agent.agent_percept)
