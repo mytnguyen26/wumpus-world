@@ -52,16 +52,31 @@ class Engine:
             <type_of_action>: (row, col)
         }
         """
-        actions = []
+        actions = {}
 
         # if there is gold
-        if self.knowledge[pos]["glitter"]:
+        if pos in self.knowledge.keys() and self.knowledge[pos]["glitter"]:
             actions.append(
                 {"grab": pos}
             )
 
         # if there is wumpus in proximity
         # kill
+        adjacent_horizontal_pos = Utility.find_adjacent_horizontal_cells(pos, self.board_size)
+        adjacent_vertical_pos = Utility.find_adjacent_vertical_cells(pos, self.board_size)
+
+        for adj_h_pos in adjacent_horizontal_pos:
+            if adj_h_pos in self.knowledge \
+                and self.knowledge[adj_h_pos]["wumpus"] == 1 \
+                and self.knowledge[adj_h_pos]["bad"] == 1:
+                actions["shoot"] = adj_h_pos
+        
+        for adj_v_pos in adjacent_vertical_pos:
+            if adj_v_pos in self.knowledge \
+                and self.knowledge[adj_v_pos]["wumpus"] == 1 \
+                and self.knowledge[adj_v_pos]["bad"] == 1:
+                actions["shoot"] = adj_v_pos
+
 
         # for all other 
         # find all adj pos
@@ -70,20 +85,23 @@ class Engine:
         # from all adj pos, find OK or unknown pos from KB
         potential_next_moves = []
         for pos in adj_pos:
-            try:
-                values = self.knowledge[pos]['ok']
+            if pos in self.knowledge.keys():
                 # consider this as next move if it is ok
-                if values:
+                if self.knowledge[pos]['ok'] \
+                    or (not self.knowledge[pos]['visited'] 
+                        and not self.knowledge[pos]['ok'] 
+                        and not self.knowledge[pos]['bad']):
                     potential_next_moves.append(pos)
-            except Exception as e:
+            else:
                 # key not found => no info yet in KB
                 # consider this as next move
                 potential_next_moves.append(pos)
 
-        actions.append({"move":random.choice(potential_next_moves)})
+        # NOTE: NEED TO PRIORITIZE NON VISISTED MOVE
+        actions["move"] = random.choice(potential_next_moves)
         return actions
 
-    def _is_wumpus(self, pos, adj_pos):
+    def _is_wumpus(self, pos, adj_pos) -> Tuple[int,int]:
         """
         from position, check if there is a wumpus in vertical, 
         horizontal adj cells from the current pos
@@ -101,15 +119,14 @@ class Engine:
             if len(remaining_posible_wumpus) == 1:
                 self.knowledge[remaining_posible_wumpus[0]]["bad"] = 1
                 print(f"wumpus location is at {remaining_posible_wumpus[0]}")
-
-
+                return remaining_posible_wumpus[0]
+        
         # case backward prove:
         # if every adj cells of a potential pos candidate is stench
         # => wumpus
-        
-        # 
+        return None
 
-    def _is_pit(self, pos, adj_pos):
+    def _is_pit(self, pos, adj_pos) -> Tuple[int,int]:
         """
         from position, check if there is a pit in vertical, 
         horizontal adj cells from the current pos
@@ -127,6 +144,8 @@ class Engine:
             if len(remaining_posible_pit) == 1:
                 self.knowledge[remaining_posible_pit[0]]["bad"] = 1
                 print(f"pit location is at {remaining_posible_pit[0]}")
+                return remaining_posible_pit[0]
+        return None
     
     def _is_ok(self, pos):
         """

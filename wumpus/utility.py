@@ -8,10 +8,9 @@ class Utility:
         given current pos, find 4 adjacent cells
         """
         def calculate_new_pos(number, board_size):
-            if number < 0 or number > board_size:
+            if number < 0 or number >= board_size:
                 return None
             return number
-        
         
         adj_cells = [
             (calculate_new_pos(agent_pos[0] + 1, board_size), agent_pos[1]),

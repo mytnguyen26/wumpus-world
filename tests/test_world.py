@@ -7,4 +7,9 @@ def test_placement():
     assert world.board[1][0] == "wumpus"
 
 
+def test_kill_wumpus_successful():
+    world = World(mode=0)
+    
+    request_kill_pos = (1,0)
+    assert world.kill_wumpus(request_kill_pos)
     

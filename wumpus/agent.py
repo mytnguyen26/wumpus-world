@@ -1,34 +1,46 @@
 
 from typing import List, Tuple
 from wumpus import PERCEPT
+from wumpus.engine import Engine
 
 class Agent:
-    def __init__(self, engine) -> None:
+    def __init__(self, engine: Engine, world) -> None:
+        # agent should only be interacting with world using
+        # public method
+        self.world = world
         self.agent_pos = (3, 0)
         self.agent_percept = PERCEPT
         self.engine = engine
         self.gold = 0
+        self.wumpus_killed = 0
         self.arrow = 1
 
     def move(self):
         actions = self._ask_kb()
-        for action, pos in actions:
+        for action, pos in actions.items():
             if action == "grab":
                 self.grab()
             if action == "shoot":
-                self.shoot()
+                self.shoot(pos)
             if action == "move":
                 self.agent_pos = pos
                 return pos
-
 
     def grab(self):
         # ask the world to confirm gold
         print(f"grab gold from {self.agent_pos}")
         self.gold += 1
 
-    def shoot(self):
-        pass
+    def shoot(self, pos):
+        print("Attempting to kill wumpus")
+        self.arrow -= 1
+        if self.world.kill_wumpus(pos):
+            print("Yay! Wumpus Killed")
+            self.wumpus_killed = 1
+            return True
+        else:
+            print("You Did not kill Wumpus")
+            return False
 
     def climb(self):
         """
