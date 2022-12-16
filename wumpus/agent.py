@@ -15,7 +15,7 @@ class Agent:
         self.wumpus_killed = 0
         self.arrow = 1
 
-    def move(self):
+    def move(self) -> Tuple[int,int]:
         actions = self._ask_kb()
         for action, pos in actions.items():
             if action == "grab":
@@ -29,18 +29,24 @@ class Agent:
     def grab(self):
         # ask the world to confirm gold
         print(f"grab gold from {self.agent_pos}")
-        self.gold += 1
+        if self.world.collect_gold(self.agent_pos):
+            self.gold += 1
+        else:
+            print("No gold at this location")
 
     def shoot(self, pos):
-        print("Attempting to kill wumpus")
-        self.arrow -= 1
-        if self.world.kill_wumpus(pos):
-            print("Yay! Wumpus Killed")
-            self.wumpus_killed = 1
+        if self.arrow == 1 and self.wumpus_killed > 0:
             return True
         else:
-            print("You Did not kill Wumpus")
-            return False
+            print(f"Attempting to kill wumpus at {pos}")
+            self.arrow -= 1
+            if self.world.kill_wumpus(pos):
+                print("Yay! Wumpus Killed")
+                self.wumpus_killed = 1
+                return True
+            else:
+                print("You Did not kill Wumpus")
+                return False
 
     def climb(self):
         """

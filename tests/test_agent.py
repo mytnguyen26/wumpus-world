@@ -15,12 +15,12 @@ def test_tell_knowledgebase():
     assert len(engine.knowledge) > 0
 
 def test_move():
-    world = World(mode=0)
-    engine = Engine(4)
-    agent = Agent(engine, world)
+    world2 = World(mode=0)
+    engine2 = Engine(4)
+    agent2 = Agent(engine2, world2)
 
-    percept = world.sensor(agent.agent_pos)
-    agent.update_percept(percept)
-    agent_move = agent.move()
-    assert isinstance(agent_move, tuple)
+    percept = world2.sensor(agent2.agent_pos)
+    agent2.update_percept(percept)
+    
+    assert agent2.move() in [(2,0), (3,1)]
     

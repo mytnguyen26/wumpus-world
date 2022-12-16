@@ -27,7 +27,9 @@ class Engine:
     def tell(self, move, percept) -> None:
         """
         agent invoke function to update the knowledge base the knowledge gained from
-        percept
+        percept.
+        If the agent can get here, then any guesses of it around the world should be updated 
+        with actual knowledge coming from percept, as it has visisted this cell
         """
         row = {}
         # row['move'] = move
@@ -39,8 +41,8 @@ class Engine:
         row['bad'] = 0
         
         # update the knoeldge base
-        if move not in self.knowledge.keys():
-            self.knowledge[move] = row
+        # if move not in self.knowledge.keys():
+        self.knowledge[move] = row
 
         # reason and update knowledge
         self._entail(move)
@@ -56,9 +58,7 @@ class Engine:
 
         # if there is gold
         if pos in self.knowledge.keys() and self.knowledge[pos]["glitter"]:
-            actions.append(
-                {"grab": pos}
-            )
+            actions["grab"] = pos
 
         # if there is wumpus in proximity
         # kill
@@ -83,22 +83,31 @@ class Engine:
         adj_pos: List[Tuple[int,int]] = Utility.find_adjacent_cells(pos, self.board_size)
 
         # from all adj pos, find OK or unknown pos from KB
-        potential_next_moves = []
+        potential_next_moves_visisted = []
+        potential_next_moves_not_visited = []
         for pos in adj_pos:
             if pos in self.knowledge.keys():
                 # consider this as next move if it is ok
-                if self.knowledge[pos]['ok'] \
-                    or (not self.knowledge[pos]['visited'] 
+                if self.knowledge[pos]['ok']:
+                    potential_next_moves_visisted.append(pos)
+                elif (not self.knowledge[pos]['visited'] 
                         and not self.knowledge[pos]['ok'] 
-                        and not self.knowledge[pos]['bad']):
-                    potential_next_moves.append(pos)
+                        and not self.knowledge[pos]['bad']
+                        and not self.knowledge[pos]['wumpus']
+                        and not self.knowledge[pos]['pit']):
+                    potential_next_moves_not_visited.append(pos)
+                
             else:
                 # key not found => no info yet in KB
                 # consider this as next move
-                potential_next_moves.append(pos)
+                potential_next_moves_not_visited.append(pos)
 
         # NOTE: NEED TO PRIORITIZE NON VISISTED MOVE
-        actions["move"] = random.choice(potential_next_moves)
+        if len(potential_next_moves_not_visited) > 0:
+            actions["move"] = random.choice(potential_next_moves_not_visited)
+        elif len(potential_next_moves_visisted) > 0:
+            actions["move"] = random.choice(potential_next_moves_visisted)
+
         return actions
 
     def _is_wumpus(self, pos, adj_pos) -> Tuple[int,int]:

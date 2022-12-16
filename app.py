@@ -1,4 +1,6 @@
-from wumpus import agent, engine, world
+from wumpus.world import World
+from wumpus.engine import Engine
+from wumpus.agent import Agent
 
 def is_game_over(agent, percept):
     if agent.arrow == 0 and agent.wumpus_killed == 0:
@@ -15,26 +17,31 @@ def is_game_over(agent, percept):
     return False
 
 if __name__=="__main__":
-    world = world.World(mode=0)
-    knowledge = engine.Engine(board_size=world.board_size)
-    agent = agent.Agent(engine=knowledge, world=world)
+    world = World(mode=0)
+    knowledge = Engine(board_size=world.board_size)
+    agent = Agent(engine=knowledge, world=world)
     
     # initialize the first sense of the world
     percept = world.sensor(agent.agent_pos)
+    
     agent.update_percept(percept) 
 
     counter = 0
     # while not game over
-    # while False: indicate not game over
-    while counter < 10:
+    while True:
         print(f"Iteration {counter}")
         # agent ask for move from KB
-        agent_move = agent.move()
-        print(f"Move to cell {agent_move}")
+        agent.agent_pos = agent.move()
+        print(f"Move to cell {agent.agent_pos}")
         
         # agent ask to update position in world
         # and receives percept from world
-        percept = world.sensor(agent_move)
+        percept = world.sensor(agent.agent_pos)
+        print(f"Receive Percept {percept}")
+        
+        if is_game_over(agent, percept):
+            break
+        
         agent.update_percept(percept) 
 
         # else proceed to 
