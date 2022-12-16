@@ -5,22 +5,27 @@ from wumpus.agent import Agent
 def is_game_over(agent, percept):
     if agent.arrow == 0 and agent.wumpus_killed == 0:
         print("You ran out of Arrow")
-        print("You loose")
+        print("YOU LOOSE")
         return True
     if percept["game_over"]:
-        print("You Loose")
+        with open("debug.txt", mode ="w+") as file:
+            for line in agent.engine.knowledge.items():
+                file.write(f"{line}\n")
+        
+        print("YOU LOOSE")
         return True
     if agent.wumpus_killed == 1 and agent.gold > 0:
-        print(f"Current Gold collected {agent.gold}")
-        print("You Won")
+        print(f"TOTAL GOLD COLLECTED: {agent.gold}")
+        print(f"WUMPUS KILLED: {agent.wumpus_killed}")
+        print("YOU WON")
         return True
     return False
 
 if __name__=="__main__":
-    world = World(mode=0)
-    knowledge = Engine(board_size=world.board_size)
+    world = World(mode=1)
+    knowledge = Engine(world.start_agent_pos, board_size=world.board_size)
     agent = Agent(engine=knowledge, world=world)
-    
+    print(f"Starting Position {agent.agent_pos}")
     # initialize the first sense of the world
     percept = world.sensor(agent.agent_pos)
     

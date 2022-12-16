@@ -8,7 +8,7 @@ class Agent:
         # agent should only be interacting with world using
         # public method
         self.world = world
-        self.agent_pos = (3, 0)
+        self.agent_pos = world.start_agent_pos
         self.agent_percept = PERCEPT
         self.engine = engine
         self.gold = 0
@@ -35,7 +35,7 @@ class Agent:
             print("No gold at this location")
 
     def shoot(self, pos):
-        if self.arrow == 1 and self.wumpus_killed > 0:
+        if self.arrow == 0 and self.wumpus_killed > 0:
             return True
         else:
             print(f"Attempting to kill wumpus at {pos}")
@@ -43,6 +43,7 @@ class Agent:
             if self.world.kill_wumpus(pos):
                 print("Yay! Wumpus Killed")
                 self.wumpus_killed = 1
+                self.engine.remove_wumpus(pos)
                 return True
             else:
                 print("You Did not kill Wumpus")

@@ -5,10 +5,11 @@ from wumpus.agent import Agent
 from wumpus.utility import Utility
 
 class World:
-    def __init__(self, mode: int):
+    def __init__(self, mode: int, world_row: int=None, world_col: int=None):
         # generate a 4x4 matrix
+        
         if mode==0:
-            self.agent_pos = (3, 0)
+            self.start_agent_pos = (3, 0)
             self.board = [[[], [], [], []],
                     [[], [], [], []],
                     [[], [], [], []],
@@ -16,7 +17,7 @@ class World:
             self._randomly_place_stuff_test_board()
         else:
             # starting pos
-            self.agent_pos = (0, 0)
+            self.start_agent_pos = (0, 0)
             self.board = [[[], [], [], [], []],
                     [[], [], [], [], []],
                     [[], [], [], [], []],
@@ -24,6 +25,7 @@ class World:
                     [[], [], [], [], []]]
             self._randomly_place_stuff_big_board()
         self.board_size = len(self.board)
+        self.agent_pos = self.start_agent_pos
     
     def _randomly_place_stuff_test_board(self):
         """
@@ -43,26 +45,26 @@ class World:
             for cell in cells:
                 self.board[cell[0]][cell[1]].append(key)
         
-        self.board[self.agent_pos[0]][self.agent_pos[1]] = "agent"
+        self.board[self.start_agent_pos[0]][self.start_agent_pos[1]] = "agent"
     
     def _randomly_place_stuff_big_board(self):
         """
         TODO
         """
         placement = {
-            "wumpus": [(1, 0)],
-            "pit": [(0, 3), (1, 2), (3, 2)],
-            "gold": [(1, 1)],
+            "wumpus": [(2, 1)],
+            "pit": [(0, 2), (1, 3), (3, 0), (3, 4), (4, 1)],
+            "gold": [(4, 2)],
 
             # the following can be generated as 
-            "stench": [(0, 0), (1, 1), (2, 0)],
-            "breeze": [(0, 2), (1, 1), (1, 3), (2, 2), (3, 1), (3, 3)]
+            "stench": [(2, 0), (1, 1), (2, 2), (3, 1)],
+            "breeze": [(0, 1), (0, 3), (1, 2), (1, 4), (2, 0), (2, 3), (2, 4), (3, 1), (3, 3), (4, 0), (4, 2)]
         }
         for key, cells in placement.items():
             for cell in cells:
-                self.board[cell[0]][cell[1]] = key
+                self.board[cell[0]][cell[1]].append(key)
         
-        self.board[self.agent_pos[0]][self.agent_pos[1]] = "agent"
+        self.board[self.start_agent_pos[0]][self.start_agent_pos[1]] = "agent"
 
     def _is_game_over(self) -> bool:
         return "wumpus" in self.board[self.agent_pos[0]][self.agent_pos[1]] \
@@ -73,7 +75,13 @@ class World:
             self.board[request_gold_pos[0]][request_gold_pos[1]].remove("gold")
             return True
         return False
-        
+
+    def _remove_stench(self, wumpus_pos):
+        adj_pos = Utility.find_adjacent_cells(wumpus_pos, self.board_size)
+        for pos in adj_pos:
+            if "stench" in self.board[pos[0]][pos[1]]:
+                self.board[pos[0]][pos[1]].remove("stench")
+
     def kill_wumpus(self, request_shooting_pos: Tuple[int,int]) -> bool:
         """
         A way for agent to try and kill wumpus
@@ -93,6 +101,7 @@ class World:
         
         if "wumpus" in self.board[request_shooting_pos[0]][request_shooting_pos[1]]:
             self.board[request_shooting_pos[0]][request_shooting_pos[1]].remove("wumpus")
+            self._remove_stench(request_shooting_pos)
             return True
 
         # check row of agent position against the row of the requested pos
@@ -100,12 +109,14 @@ class World:
             for pos in adjacent_horizontal_pos:
                 if "wumpus" in self.board[pos[0]][pos[1]]:
                     self.board[request_shooting_pos[0]][request_shooting_pos[1]].remove("wumpus")
+                    self._remove_stench(request_shooting_pos)
                     return True
         # check col of agent position against the col of the requested pos
         if self.agent_pos[1] == request_shooting_pos[1]:
             for pos in adjacent_vertical_pos:
                 if  "wumpus" in self.board[pos[0]][pos[1]]:
                     self.board[request_shooting_pos[0]][request_shooting_pos[1]].remove("wumpus")
+                    self._remove_stench(request_shooting_pos)
                     return True
         return False
 

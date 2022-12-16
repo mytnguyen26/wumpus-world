@@ -9,11 +9,15 @@ ACTUATORS = ["move", "grab", "shoot"]
 
 
 class Engine:
-    def __init__(self, board_size):
+    def __init__(self, start_pos, board_size):
 
         # current board
+        self.choosen_move_freq = {
+            start_pos: 1
+        }
+        
         self.board_size = board_size
-
+        
         self.knowledge = {
             # (row, col) : {
             # 'percept': PERCEPT, 
@@ -23,6 +27,23 @@ class Engine:
             # 'visited': boolean
             # }
         }
+
+    def remove_wumpus(self, pos):
+        """
+        After killing wumpus, update the actual position of wumpus to ok,
+        clear all other position with wumpus guess
+        """
+        self.knowledge[pos]["wumpus"] = 0
+        self.knowledge[pos]["ok"] = 1
+        self.knowledge[pos]["pit"] = 0
+        self.knowledge[pos]["bad"] = 0
+        adj_pos = Utility.find_adjacent_cells(pos, self.board_size)
+
+        for adj in adj_pos:
+            if adj in self.knowledge.keys():
+                self.knowledge[adj]["stench"] = 0
+
+
 
     def tell(self, move, percept) -> None:
         """
@@ -88,10 +109,9 @@ class Engine:
         for pos in adj_pos:
             if pos in self.knowledge.keys():
                 # consider this as next move if it is ok
-                if self.knowledge[pos]['ok']:
+                if self.knowledge[pos]["visited"] and self.knowledge[pos]['ok']:
                     potential_next_moves_visisted.append(pos)
                 elif (not self.knowledge[pos]['visited'] 
-                        and not self.knowledge[pos]['ok'] 
                         and not self.knowledge[pos]['bad']
                         and not self.knowledge[pos]['wumpus']
                         and not self.knowledge[pos]['pit']):
@@ -105,8 +125,17 @@ class Engine:
         # NOTE: NEED TO PRIORITIZE NON VISISTED MOVE
         if len(potential_next_moves_not_visited) > 0:
             actions["move"] = random.choice(potential_next_moves_not_visited)
+            self.choosen_move_freq[actions["move"]] = 1
+        
         elif len(potential_next_moves_visisted) > 0:
-            actions["move"] = random.choice(potential_next_moves_visisted)
+            potential_next_moves_visisted_freq = {}
+            for move in potential_next_moves_visisted:
+                potential_next_moves_visisted_freq[move] = self.choosen_move_freq[move]
+                
+            min_move = min(potential_next_moves_visisted_freq, key=potential_next_moves_visisted_freq.get)
+            # favor move that less chosen
+            actions["move"] = min_move
+            self.choosen_move_freq[min_move] += 1
 
         return actions
 
@@ -129,6 +158,23 @@ class Engine:
                 self.knowledge[remaining_posible_wumpus[0]]["bad"] = 1
                 print(f"wumpus location is at {remaining_posible_wumpus[0]}")
                 return remaining_posible_wumpus[0]
+            else:
+                wumpus_evaluation = remaining_posible_wumpus.copy()
+                for wumpus_pos in wumpus_evaluation:
+                    adj_to_wumpus = Utility.find_adjacent_cells(wumpus_pos, self.board_size)
+                    known_stench_pos = [cell for cell in self.knowledge.keys() \
+                                        if self.knowledge[cell]["stench"] == 1]
+
+                    for stench_pos in known_stench_pos:
+                        if stench_pos not in (adj_to_wumpus) and wumpus_pos in remaining_posible_wumpus:
+                            self.knowledge[wumpus_pos]["wumpus"] = 0
+                            remaining_posible_wumpus.remove(wumpus_pos)
+                            
+                if len(remaining_posible_wumpus) == 1:
+                    self.knowledge[remaining_posible_wumpus[0]]["bad"] = 1
+                    print(f"wumpus location is at {remaining_posible_wumpus[0]}")
+                    return remaining_posible_wumpus[0]
+
         
         # case backward prove:
         # if every adj cells of a potential pos candidate is stench
@@ -163,12 +209,47 @@ class Engine:
         then adjs position we know about must be labelled with both Stench and Breeze
         if not, the are no pit nor wumpus at that position.
         """
-        
-        if self.knowledge[pos]["pit"] and self.knowledge[pos]["wumpus"]:
-            self.knowledge[pos]["ok"] = 1
-            self.knowledge[pos]["wumpus"] = 0
-            self.knowledge[pos]["pit"] = 0
+        adj_cell = Utility.find_adjacent_cells(pos, self.board_size)
+        # not_matching_cnt = 0
+        # if self.knowledge[pos]["pit"] \
+        #     and self.knowledge[pos]["wumpus"] \
+        #     and not self.knowledge[pos]["bad"]:
 
+        #     for adj in adj_cell:
+        #         if adj in self.knowledge.keys() \
+        #             and self.knowledge[adj]["stench"] != self.knowledge[adj]["breeze"]:
+        #             not_matching_cnt += 1
+
+        #     # if more than half of cell arounding that candidate cell
+        #     # does not match, then cell is ok
+        #     if not_matching_cnt/len(adj_cell) > 0.5:        
+        #         self.knowledge[pos]["ok"] = 1
+        #         self.knowledge[pos]["wumpus"] = 0
+        #         self.knowledge[pos]["pit"] = 0
+
+        # this cell we are checking is suspected to be pit
+        # for this to happen, all known and visisted ce lls around it
+        # must have either stench or breeze and must not be stench 
+        if self.knowledge[pos]["pit"]:  
+            for adj in adj_cell:
+                if adj in self.knowledge.keys() \
+                    and self.knowledge[adj]["visited"] \
+                    and not self.knowledge[adj]["breeze"]:
+                    self.knowledge[pos]["ok"] = 0
+                    self.knowledge[pos]["pit"] = 0
+        
+        if self.knowledge[pos]["wumpus"]:
+            for adj in adj_cell:
+                if adj in self.knowledge.keys() \
+                    and self.knowledge[adj]["visited"] \
+                    and not self.knowledge[adj]["stench"]:
+                    self.knowledge[pos]["ok"] = 0
+                    self.knowledge[pos]["wumpus"] = 0
+        
+        if not self.knowledge[pos]["pit"] and not self.knowledge[pos]["wumpus"]:
+            self.knowledge[pos]["ok"] = 1
+
+        
     def _entail(self, pos):
         """
         After `tell` is called to update current knowledge base, the knowledge base
@@ -197,12 +278,14 @@ class Engine:
                 }
                 if self.knowledge[pos]["breeze"]:
                     record["pit"] = 1
-                elif self.knowledge[pos]["stench"]:
+                if self.knowledge[pos]["stench"]:
                     record["wumpus"] = 1
                 
                 self.knowledge[adj] = record
             
             self._is_ok(adj)
+            self._is_wumpus(adj, Utility.find_adjacent_cells(adj, self.board_size))
+            self._is_pit(adj, Utility.find_adjacent_cells(adj, self.board_size))
                 
                 
         # after updating, check again to see if we can prove wumpus
